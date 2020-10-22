@@ -1,12 +1,13 @@
-# Openrocket to SCAD
+# Openrocket to SCAD (DOES NOT WORK YET)
 This is a python utility to convert openrocket .ork files to SCAD files. Openrocket files are actually zipped [xml](openrocketFileDocumentation.md), so using some simple python libraries it is easy to parse, and match scad snippets to xml elements/
 ## Requirements
  - Python
  - `xml.etree.ElementTree`
  - `os`
+ - `zipfile`
+ - `shutil`
+All of these should come packages with modern versions of python
 ## Instructions
-1. Rename a given .ork file to .zip
-2. Extract contents
-3. In a terminal copy /extracted/rocket.xml to the directory where the python file is.
-4. `python .\openrocket-to-scad.py`
-5. A conversion.log and rocket.scad file will be generated.
+1. Run the Python file
+2. Enter the filename or the path to the .ork file
+3. Unless the -o option is used, the generated file will be `out.scad`

@@ -71,7 +71,7 @@ class Launch_Lug(object):
     pass
 #scad file preamble data
 version = "v0.0\n"
-renderParameters = "$fa = 50\n $fs = 50"
+renderParameters = "$fa = 50\n$fs = 50\n"
 #---------------------------
 #FUNCTIONS
 def setupTempDir():
@@ -96,6 +96,7 @@ def extractXml(filename):
 
 def getNoseconeParameters(ext_root):
     "parses the parameters of the <nosecone> component"
+    print("Getting Nosecone...")
     elements = []
     for item in ext_root.findall('rocket/subcomponents/stage/subcomponents/nosecone/'):
         if item.tag != "subcomponents":
@@ -162,6 +163,7 @@ def getLaunchLugParameters(ext_root):
 
 def generateNoseconeScad(ext_root):
     "returns the string to be printed to the scad file"
+    print("Generating nosecone info...")
     noseconeGenerator = getNoseconeParameters(ext_root).generator
     noseconeShapeParameter = getNoseconeParameters(ext_root).generator_parameter
     noseconeRadius = getNoseconeParameters(ext_root).generator_end_radius

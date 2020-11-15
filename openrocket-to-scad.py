@@ -17,6 +17,7 @@ class BodyTube(object):
     "Holds the physical values for any <bodytube>"
     length = 0
     wall_thickness = 0  
+    radius = 0
     pass
 class NoseCone(object):
     "Holds the physcial attributes for any <nosecone>"
@@ -94,6 +95,31 @@ def extractXml(filename):
         exit()
     return root
 
+def outlineRocket(ext_root):
+    #identify how many bodytubes there are
+    elements = []
+    profile = [] #final profile of the rocket 
+    v1outline = []
+    v2outline = []
+    v3outline = []
+
+    #gets the number of top level components, builds the highest level outline
+    for item in ext_root.findall("rocket/subcomponents/stage/subcomponents/"):
+        v1outline.append(item.tag) #get all of the highest-level physical components
+    print("\ntop-level components", v1outline)
+
+    #gets the number of bodytubes and builds the 2nd level outline 
+    tubesCT = v1outline.count('bodytube')
+    print("\nthere are %s bodytubes" %tubesCT) #cool print syntax
+    for x in range(tubesCT):
+        print('\ntube number', str(x+1))
+        for item in ext_root.findall("rocket/subcomponents/stage/subcomponents/bodytube["+ str(x+1) +"]/"):
+            print("\t",[item.tag, item.text])
+            v2outline.append(item.tag)
+
+    
+    pass
+
 def getNoseconeParameters(ext_root):
     "parses the parameters of the <nosecone> component"
     print("Getting Nosecone...")
@@ -102,11 +128,13 @@ def getNoseconeParameters(ext_root):
         if item.tag != "subcomponents":
             elements.append([item.tag, item.text]) #add tags / values to elements[]
     output = NoseCone()
-    output.length = elements[2][1] #[field nubmer][0: tag; 1: value]
+    #[field nubmer][0: tag; 1: value]
+    #overall parameters
+    output.length = elements[3][1] #confirmed
     output.thickness = elements[3][1]
     #shoulder generator params
-    output.shoulder_radius = elements[8][1]
-    output.shoulder_length = elements[9][1]
+    output.shoulder_radius = elements[8][1] 
+    output.shoulder_length = elements[6][1] 
     output.shoulder_thickness = elements[10][1]
     output.shoulder_capped = elements[11][1]
     #nosecone generator params
@@ -116,12 +144,17 @@ def getNoseconeParameters(ext_root):
     output.generator_end_radius = elements[7][1]
     return output 
 
-def getBodytubeParameters(ext_root):
+def getbodytubeparameters(ext_root):
     "parses the parameters of the <bodytube> component"
     elements = []
-    for item in ext_root.findall('rocket/subcomponents/stage/subcomponents/'):
+    for item in ext_root.findall('rocket/subcomponents/stage/subcomponents/nosecone/'):
         if item.tag != "subcomponents":
-            elements.append([item.tag, item.text])
+            elements.append([item.tag, item.text]) #add tags / values to elements[]
+    output = BodyTube() #output object instance
+    output.length = elements[4][1]
+    output.wall_thickness = float(elements[5][1]) #openrocket likes scientific notation
+    output.radius = elements[6][1]
+    return output
 
 def getTransitionParameters(ext_root):
     "parses the parameters of the <transistion> component"
@@ -163,21 +196,26 @@ def getLaunchLugParameters(ext_root):
 
 def generateNoseconeScad(ext_root):
     "returns the string to be printed to the scad file"
-    print("Generating nosecone info...")
-    noseconeGenerator = getNoseconeParameters(ext_root).generator
-    noseconeShapeParameter = getNoseconeParameters(ext_root).generator_parameter
-    noseconeRadius = getNoseconeParameters(ext_root).generator_end_radius
-    noseconeLength = getNoseconeParameters(ext_root).length
-    if noseconeGenerator == "power":
-        return "cone_power_series(" + noseconeShapeParameter+","+ noseconeRadius +","+ noseconeLength + ");\n"
-    elif noseconeGenerator == "haack":
-        return "cone_haack(" + noseconeShapeParameter+","+noseconeRadius+","+noseconeLength+");\n"
-    elif noseconeGenerator == "ogive":
-        return "cone_ogive_tan(" + noseconeShapeParameter+","+noseconeRadius+","+noseconeLength+");\n"
+    cone = getNoseconeParameters(ext_root)
+    result = ""
+    if cone.generator == "power":
+        print("power")
+        result = "cone_power_series("+cone.generator_parameter+","+cone.generator_end_radius+","+cone.length+");\n" #its ugly
+    elif cone.generator == "ogive":
+        print("ogive")
+        result = "cone_ogive_tan("+cone.generator_parameter+","+cone.generator_end_radius+","+cone.length+");\n"
+    elif cone.generator == "haack":
+        print("haack")
+    elif cone.generator == "parabolic":
+        print("parabolic")
+    print(result)
+    return result
 
-def generateBodytubeScad():
-    "retuens the string to be printed to the scad file for bodytube components"
-    
+def generateBodytubeScad(ext_root):
+    "returns the string to be printed to the scad file for bodytube components"
+    tube = getbodytubeparameters(ext_root)
+    result = ""
+
 def cleanup():
     "cleans up any leftover temporary files after execution"
     shutil.rmtree("temp/")
@@ -189,8 +227,8 @@ def build(infilename, outfilename="out"):
     outfile.write(renderParameters) #the render settings for scad 
     outfile.write("include <rocketParts.scad>; //copackaged scad library\n")
     buildroot = extractXml(infilename) #get the etree.root to pass to other functions
-    generateNoseconeScad(buildroot)
-
+    #outfile.write(generateNoseconeScad(buildroot)) #actually write the damn data #FIXME potential conflict when =auto
+    outfile.write(generateBodytubeScad(buildroot))
     outfile.close()#close file at end of write sequence
 #---------------------------
 #MAIN
